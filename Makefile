@@ -1,33 +1,78 @@
-.PHONY: up down fresh sail artisan npm test
+.PHONY: up down fresh artisan npm test clean
 
-# Spin up the Laravel Sail environment
+SHELL := /bin/bash
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+NC := \033[0m
+
+# Helper to check if Sail exists
+SAIL := ./vendor/bin/sail
+
+# Start Sail containers
 up:
-	@./vendor/bin/sail up -d
+	@echo -e "$(GREEN)[✔] Starting Laravel Sail...$(NC)"
+	@$(SAIL) up -d
 
-# Stop the containers
+# Stop Sail containers
 down:
-	@./vendor/bin/sail down
+	@if [ -f $(SAIL) ]; then \
+		echo -e "$(GREEN)[✔] Stopping Laravel Sail...$(NC)"; \
+		$(SAIL) down; \
+	else \
+		echo -e "$(YELLOW)[→] Skipping down — Sail not installed yet.$(NC)"; \
+	fi
 
-# Run artisan commands
+# Run artisan commands: make artisan ARGS="migrate"
 artisan:
-	@./vendor/bin/sail artisan $(ARGS)
+	@$(SAIL) artisan $(ARGS)
 
-# Run NPM dev script
+# Run Vite dev build
 npm:
-	@./vendor/bin/sail npm run dev
+	@$(SAIL) npm install
+	@$(SAIL) npm run dev
 
-# Full setup from scratch: install everything, migrate and seed, and run frontend dev
+# Full setup from scratch
 fresh: down
-	@echo "Starting fresh setup..."
-	@cp .env.example .env || true
-	@./vendor/bin/sail up -d
-	@./vendor/bin/sail composer install
-	@./vendor/bin/sail artisan key:generate
-	@./vendor/bin/sail artisan migrate:fresh --seed
-	@./vendor/bin/sail npm install
-	@./vendor/bin/sail npm run dev
-	@echo "✅ Fresh setup complete."
+	@echo -e "$(GREEN)[🛠] Starting fresh Laravel setup...$(NC)"
 
-# Run tests
+	@if [ ! -f .env ]; then \
+		echo -e "$(GREEN)[✔] Copying .env.example to .env$(NC)"; \
+		cp .env.example .env; \
+	else \
+		echo -e "$(YELLOW)[→] .env already exists, skipping copy$(NC)"; \
+	fi
+
+	@if [ ! -f $(SAIL) ]; then \
+		echo -e "$(GREEN)[📦] Installing Composer dependencies...$(NC)"; \
+		composer install; \
+	fi
+
+	@echo -e "$(GREEN)[🐳] Starting Sail containers...$(NC)"
+	@$(SAIL) up -d
+
+	@echo -e "$(GREEN)[🔑] Generating app key...$(NC)"
+	@$(SAIL) artisan key:generate
+
+	@echo -e "$(GREEN)[⏳] Waiting for MySQL to be ready...$(NC)"
+	@until $(SAIL) artisan migrate:fresh --seed; do \
+		echo -e "$(YELLOW)⏳ Retrying in 3 seconds...$(NC)"; \
+		sleep 3; \
+	done
+
+	@echo -e "$(GREEN)[📦] Installing NPM packages...$(NC)"
+	@$(SAIL) npm install
+
+	@echo -e "$(GREEN)[🚀] Starting Vite dev server...$(NC)"
+	@$(SAIL) npm run dev
+
+	@echo -e "$(GREEN)[✅] All done! Visit your app at http://localhost$(NC)"
+
+# Run PHPUnit tests
 test:
-	@./vendor/bin/sail test
+	@$(SAIL) test
+
+# Remove environment & vendor files (dangerous)
+clean: down
+	@echo -e "$(YELLOW)[!] Removing .env, vendor, and node_modules...$(NC)"
+	@rm -f .env
+	@rm -rf vendor node_modules

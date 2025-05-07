@@ -11,9 +11,13 @@ export default defineConfig({
         react(),
     ],
     server: {
-        host: 'localhost',
+        host: '0.0.0.0',
         port: 5174,
-    },
+        strictPort: true,
+        hmr: {
+          host: 'localhost', // 👈 this part is crucial
+        },
+      },
     build: {
         sourcemap: true,
     },
