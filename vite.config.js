@@ -10,4 +10,11 @@ export default defineConfig({
         }),
         react(),
     ],
+    server: {
+        host: 'localhost',
+        port: 5174,
+    },
+    build: {
+        sourcemap: true,
+    },
 });
