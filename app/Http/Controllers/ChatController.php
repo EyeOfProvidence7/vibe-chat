@@ -7,7 +7,9 @@ class ChatController extends Controller
 {
     public function testBroadcast()
     {
-        broadcast(new MessageSent('Hello from the backend!'));
+        $variable = 'Hello from the backend!';
+
+        broadcast(new MessageSent($variable));
         return response()->json(['status' => 'message sent']);
     }
 }
