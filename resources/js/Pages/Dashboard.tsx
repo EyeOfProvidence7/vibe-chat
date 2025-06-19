@@ -9,19 +9,20 @@ export default function Dashboard() {
     const [input, setInput] = useState('')
 
     useEffect(() => {
-        const socket = (echo.connector as any)?.socket
+        const pusher = (echo.connector as any).pusher
 
-        if (socket) {
-            socket.onopen = () => {
+        if (pusher) {
+            pusher.connection.bind('connected', () => {
                 console.log('✅ WebSocket connection established')
-            }
+            })
 
-            socket.onerror = (err: any) => {
+            pusher.connection.bind('error', (err: any) => {
                 console.error('❌ WebSocket error:', err)
-            }
+            })
         } else {
-            console.warn('⚠️ Echo socket not found')
+            console.warn('⚠️ Echo Pusher connector not found')
         }
+
 
         echo.channel('chat').listen('.MessageSent', (e: any) => {
             console.log('📩 New message received:', e.message)
